@@ -22,7 +22,9 @@ a{
 }
 .logo-entreprise{
   margin-top: 30px;
-  width: 25%;
+  max-width: 25%;
+  height: auto;
+  aspect-ratio: 250 / 75;
   text-align: center;
 }
 .div-logo-ttm{
@@ -31,7 +33,9 @@ a{
 }
 .logo-ttm{
   margin-top: 30px;
-  width: 28%;
+  max-width: 40%;
+  height: auto;
+  aspect-ratio: 1000 / 300 ;
   align-items: center;
   
 }
@@ -180,7 +184,10 @@ nav ul{
     text-align: center;
   }
   .footer-bloc1 img{
-    max-height: 50px;
+    max-height: 25px;
+    height: auto;
+    aspect-ratio: 50 / 50;
+
   }
   .footer-bloc2{
     margin: 15px;
@@ -238,7 +245,10 @@ nav ul{
       display: block;
     }
     .logo-entreprise{
-      width: 40%;
+      max-width: 50%;
+    }
+    .logo-ttm{
+      max-width: 25%
     }
     .footer-line{
       flex-direction: row;

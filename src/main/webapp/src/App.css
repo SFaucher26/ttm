@@ -4,7 +4,12 @@
 * {
   margin-top: 0;
   padding: 0;
-
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1rem; /* Ajuste la taille de base si nécessaire */
+  line-height: 1.5; /* Améliore la lisibilité */
+  color: #333; /* Une couleur de texte standard pour le contraste */
 }
 
 

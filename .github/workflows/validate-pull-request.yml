@@ -9,7 +9,6 @@ on:
       - ready_for_review
     branches:
       - develop
-
 jobs:
   check:
     name: Validation du code
@@ -23,7 +22,7 @@ jobs:
           POSTGRES_DB: ttm
         ports:
           - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timout 5s --health-retries 5
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,12 +31,27 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          TIMEOUT=60  # Timeout en secondes
+          INTERVAL=2  # Intervalle de vérification en secondes
+          COUNT=0
+          while ! pg_isready -h localhost -p 5432 -U postgres; do
+            if [ $COUNT -ge $TIMEOUT ]; then
+              echo "Timeout reached. PostgreSQL is not ready."
+              exit 1
+            fi
+            echo "Waiting for PostgreSQL..."
+            sleep $INTERVAL
+            COUNT=$((COUNT + INTERVAL))
+          done
+          echo "PostgreSQL is ready"
       - name: Run spring checks
         env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ttm
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/ttm
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgres
-        run: gradle check
+        run: gradle check -Dspring.profiles.active=ci
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -48,21 +62,98 @@ jobs:
            retention-days: 1
            compression-level: 0
 
-  build:
-    name: Build .jar file
+  lighthouseci:
     runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ttm
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup JDK 17
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Configure npm to use public registry
+        run: npm config set registry https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: cd src/main/webapp && npm install
+
+      - name: Build webapp
+        run: cd src/main/webapp && npm run build
+
+      - name: Install Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
       - name: Build with Gradle
+        run: ./gradlew bootjar
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          TIMEOUT=60  # Timeout en secondes
+          INTERVAL=2  # Intervalle de vérification en secondes
+          COUNT=0
+          while ! pg_isready -h localhost -p 5432 -U postgres; do
+            if [ $COUNT -ge $TIMEOUT ]; then
+              echo "Timeout reached. PostgreSQL is not ready."
+              exit 1
+            fi
+            echo "Waiting for PostgreSQL..."
+            sleep $INTERVAL
+            COUNT=$((COUNT + INTERVAL))
+          done
+          echo "PostgreSQL is ready"
+
+      - name: Start Spring Boot server
         env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ttm
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/ttm
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgres
-        run: gradle build
+        run: |
+          nohup java -jar -Dspring.profiles.active=ci build/libs/*.jar & 
+          echo "Waiting for server to start..."
+          timeout=60
+          while ! curl -s http://localhost:8080/ > /dev/null; do 
+            sleep 5
+            echo "Waiting for server..."
+            ((timeout-=5))
+            if [ $timeout -le 0 ]; then
+              echo "Server failed to start within 60 seconds"
+              cat nohup.out || true
+              exit 1
+            fi
+          done
+          echo "Server is up!"
+
+      - name: Show Spring Boot logs if it fails
+        if: failure()
+        run: cat nohup.out || true
+
+      - name: Installer Lighthouse CI
+        run: npm install -g @lhci/cli@0.14.x
+
+      - name: Run Lighthouse CI
+        run: lhci autorun --collect.url=http://localhost:5173
+
+
+
+
+
 

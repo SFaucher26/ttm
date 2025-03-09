@@ -1,9 +1,9 @@
 import React, {useContext, useState, useEffect, useRef} from "react";
 import {Outlet, Link} from "react-router-dom";
 import "./layout.css";
-import logo from "../assets/images/logo.png";
-import ttm_rose from "../assets/images/ttm_rose.png";
-import hologramme_ttm from "../assets/images/hologramme_ttm.png";
+import logo from "../assets/images/logo.webp";
+import ttm_rose from "../assets/images/ttm_rose.webp";
+import hologramme_ttm from "../assets/images/hologramme_ttm.webp";
 import { AuthContext } from "../context/AuthContext.jsx";
 
 
@@ -78,15 +78,15 @@ export default function Layout() {
                         </div>
                     </div>
                     {isProfilOpen && (
-                        <div className="menu">
+                        <div className="menu" aria-label="Sous menu du profil">
                             <ul className="dropdown-content">
                                 <li>
-                                    <Link to="/AdminView" className="menu-link">Back-office</Link>
+                                    <Link to="/AdminView" className="menu-link" aria-label="Lien d'administrateur">Back-office</Link>
                                 </li>
                                 <li>
-                                    <Link to="/userProfil" className="menu-link">Mon profil</Link>
+                                    <Link to="/userProfil" className="menu-link" aria-label="Lien vers le profil utilisateur">Mon profil</Link>
                                 </li>
-                                <li>
+                                <li aria-label="Lien pour la déconnection">
                                     <LogoutLi/>
                                 </li>
                             </ul>
@@ -99,20 +99,20 @@ export default function Layout() {
                 <Outlet/>
             </main>
             <footer className="footer-line">
-            <div className="footer-bloc1">
-                    <img src={hologramme_ttm} alt="logo-mini-ttm" />
+                <div className="footer-bloc1">
+                    <img src={hologramme_ttm} alt="logo d'initiative Deux-Sèvres" width="50" height="50"/>
                 </div>
-                <div className="footer-bloc2">
+                <div className="footer-bloc2" aria-label="Informations sur Initiative Deux-Sèvres">
                     <p className="text-bloc2">Votre plateforme : <br/>Initiative Deux-Sèvres</p>
                 </div>
-                <div className="footer-bloc3">
+                <div className="footer-bloc3" aria-label="Coordonnées de contact">
                     <p><a href="tel:+0679875609">0679875609</a><br/><a href="mailto:accompagnement@initiativedeuxsevres.fr" >accompagnement@initiativedeuxsevres.fr</a></p>
                 </div>
-                <div className="footer-bloc4">
-                    <Link to="" className="social-link" target="_blank"><FontAwesomeIcon icon={faInstagram} className="social-icon"/></Link>
-                    <Link to="" className="social-link" target="_blank"><FontAwesomeIcon icon={faTiktok} className="social-icon" /></Link>
-                    <Link to="https://www.facebook.com/profile.php?id=61556616180678" className="social-link" target="_blank"><FontAwesomeIcon icon={faSquareFacebook} className="social-icon"/></Link>
-                    <Link to="https://www.linkedin.com/company/initiative-deux-sevres/posts/?feedView=all" className="social-link" target="_blank"><FontAwesomeIcon icon={faLinkedin} className="social-icon"/></Link>
+                <div className="footer-bloc4" aria-label="Liens vers les réseaux sociaux">
+                    <Link to="" className="social-link" target="_blank"><FontAwesomeIcon icon={faInstagram} className="social-icon" aria-label="Instagram"/></Link>
+                    <Link to="" className="social-link" target="_blank"><FontAwesomeIcon icon={faTiktok} className="social-icon" aria-label="TikTok"/></Link>
+                    <Link to="https://www.facebook.com/profile.php?id=61556616180678" className="social-link" target="_blank"><FontAwesomeIcon icon={faSquareFacebook} className="social-icon" aria-label="Facebook"/></Link>
+                    <Link to="https://www.linkedin.com/company/initiative-deux-sevres/posts/?feedView=all" className="social-link" target="_blank"><FontAwesomeIcon icon={faLinkedin} className="social-icon" aria-label="Linkedin"/></Link>
                 </div>
             </footer>
         </>

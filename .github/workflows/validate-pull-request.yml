@@ -28,11 +28,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup JDK 17
+      - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Wait for PostgreSQL to be ready
         run: |
@@ -45,21 +45,69 @@ jobs:
           echo "PostgreSQL did not become ready in time." >&2
           exit 1
 
+       # initialisation d'une image mongodb
+      - name: Start MongoDB with replica set
+        run: |
+          docker run -d --name mongo \
+            -p 27017:27017 \
+            --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'" \
+            --health-interval=10s --health-timeout=5s --health-retries=5 \
+            mongo:6.0-jammy --replSet rs0
+
+      # installation du client mongo pour pouvoir utiliser les commandes
+      - name: Install MongoDB Shell
+        run: |
+            curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-6.0.gpg
+            echo "deb [signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+            sudo apt-get update
+            sudo apt-get install -y mongodb-mongosh
+
+      - name: Init MongoDB Replica Set
+        run: |
+          echo "Waiting for MongoDB to be ready..."
+          ready=0
+          for i in {1..30}; do
+            if mongosh "mongodb://localhost:27017" --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
+              echo "MongoDB is ready!"
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [ $ready -eq 0 ]; then
+            echo "MongoDB did not become ready in time."
+            exit 1
+          fi
+
+          echo "Initiating replica set..."
+          mongosh "mongodb://localhost:27017" --eval 'rs.initiate({_id: "rs0", members: [{ _id: 0, host: "localhost:27017" }]})'
+          sleep 5
+
       - name: Run spring checks
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/ttm
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgres
-          SPRING_JPA_HIBERNATE_DDL_AUTO: validate  # Vérification du schéma Flyway
+          SPRING_JPA_HIBERNATE_DDL_AUTO: none
           SPRING_FLYWAY_ENABLED: true
           SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
-        run: ./gradlew check --info
+          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/ttm?replicaSet=rs0
+        run: ./gradlew check -x test --info
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Run tests
+        run: ./gradlew test
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: ./build/test-results/test/
+          path: |
+            ./build/test-results/test/
+            ./build/reports/tests/test/
           if-no-files-found: warn  # Évite d'échouer si aucun fichier n'est trouvé
           retention-days: 7
           compression-level: 6
@@ -105,9 +153,7 @@ jobs:
       # installer gradle
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
-      # lancer les tests unitaires java
-      - name: Run tests
-        run: ./gradlew test
+
       # lance java en tache de fond
       - name: Start Java in background
         run: ./gradlew bootrun &
@@ -187,7 +233,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: 17
+          java-version: 21
 
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2

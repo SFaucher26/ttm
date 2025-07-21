@@ -50,9 +50,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
 
-      - name: Test java
-        run: ./gradlew test
-
       - name: Build backend
         run: ./gradlew bootjar
 

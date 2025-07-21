@@ -105,6 +105,9 @@ jobs:
       # installer gradle
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
+      # lancer les tests unitaires java
+      - name: Run tests
+        run: ./gradlew test
       # lance java en tache de fond
       - name: Start Java in background
         run: ./gradlew bootrun &
